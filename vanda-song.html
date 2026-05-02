@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>My Music Player</title>
+
+        <style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('motion.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-family: Arial, sans-serif;
+    color: white;
+    transition: filter 0.2s ease;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: -1;
+}
+/* ===== NAVBAR ===== */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 5px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(26, 35, 53, 0.6);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+}
+
+.logo {
+    font-weight: bold;
+    font-size: 18px;
+    color: cyan;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.nav-links a:hover {
+    color: cyan;
+}
+
+.search-box input {
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: none;
+    outline: none;
+}
+
+
+.player {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 25px;
+    text-align: center;
+    width: 350px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 40px rgba(0,255,255,0.4);
+}
+
+h2 {
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px cyan;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    margin-bottom: 15px;
+    font-weight: bold;
+    background: black;
+    color: cyan;
+}
+
+.controls button {
+    background: black;
+    border: 2px solid cyan;
+    padding: 10px 18px;
+    margin: 10px 5px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    color: cyan;
+    transition: 0.3s;
+}
+
+.controls button:hover {
+    background: cyan;
+    color: black;
+    box-shadow: 0 0 20px cyan;
+    transform: scale(1.1);
+}
+
+input[type="range"] {
+    width: 100%;
+    margin-top: 20px;
+}
+
+#timeDisplay {
+    margin-top: 10px;
+    font-size: 14px;
+    color: cyan;
+}
+</style>
+    </head>
+
+    <body>
+
+        <div class="player">
+            <h2 id="songTitle">Now Playing</h2>
+
+            <select id="songSelect"></select>
+
+            <audio id="audio"></audio>
+
+            <div class="controls">
+                <button onclick="prevSong()">⏮</button>
+                <button onclick="playPause()">▶ / ⏸</button>
+                <button onclick="nextSong()">⏭</button>
+            </div>
+
+            <input type="range" id="progress" value="0">
+            <div id="timeDisplay">00:00 / 00:00</div>
+        </div>
+        <script>
+const songs = [
+    { name: "ALL IN", file: "song/VANNDA - ALL IN (OFFICIAL AUDIO).mp3" },
+    { name: "BABY MAMA", file: "song/VANNDA - BABY MAMA (OFFICIAL MUSIC VIDEO).mp3" },
+    { name: "BORN THIS WAY", file: "song/VANNDA - BORN THIS WAY (EXPLICIT) Lyrics.mp3" },
+    { name: "CATCH ME IF YOU CAN", file: "song/VANNDA - CATCH ME IF YOU CAN.mp3" },
+    { name: "HERE & THERE", file: "song/VANNDA - HERE & THERE (OFFICIAL AUDIO).mp3" },
+    { name: "NEW LIFE", file: "song/VANNDA - NEW LIFE (OFFICIAL VISUALIZER).mp3" },
+    { name: "NIGHT THINKER", file: "song/VANNDA - NIGHT THINKER (OFFICIAL LYRIC VIDEO).mp3" },
+    { name: "OUT OF MY MIND", file: "song/VANNDA - OUT OF MY MIND (OFFICIAL AUDIO).mp3" },
+    { name: "U KNOW U KNOW", file: "song/VANNDA - U KNOW U KNOW (OFFICIAL VIDEO).mp3" },
+    { name: "មហាច្ចិតា", file: "song/VANNDA - មហចឆត (AMBITION) [THANK YOU FOR 4M Subs].mp3" },
+    { name: "អាត្មារ", file: "song/VANNDA - អតម (AH THMA) [OFFICIAL VISUALIZER].mp3" },
+    { name: "រស់ជាតិយ៉ាងមិច", file: "song/VANNDA - រសជតយងមច_ (HOW'S IT TASTE_) [OFFICIAL MUSIC VIDEO].mp3" },
+    { name: "LOVE SICK BLUE", file: "song/LOVE SICK BLUE (feat. Thinlamphone).mp3"},
+    { name: "KHMER BLOOD", file: "song/VANNDA - KHMER BLOOD (OFFICIAL MUSIC VIDEO).mp3"},
+    { name: "YOUNG MAN FEAT", file: "song/VANNDA - YOUNG MAN FEAT. OG BOBBY (OFFICIAL MUSIC VIDEO).mp3"},
+    { name: "DADDY DA & KING", file: "song/VANNDA - DADDY DA & KING (OFFICIAL MUSIC VIDEO).mp3"}
+
+    
+
+
+];
+
+let currentSong = 0;
+const audio = document.getElementById("audio");
+const title = document.getElementById("songTitle");
+const progress = document.getElementById("progress");
+const songSelect = document.getElementById("songSelect");
+const timeDisplay = document.getElementById("timeDisplay");
+
+// Audio visualizer
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const source = audioContext.createMediaElementSource(audio);
+const analyser = audioContext.createAnalyser();
+source.connect(analyser);
+analyser.connect(audioContext.destination);
+analyser.fftSize = 256;
+
+const bufferLength = analyser.frequencyBinCount;
+const dataArray = new Uint8Array(bufferLength);
+
+// Fill dropdown
+songs.forEach((song, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = song.name;
+    songSelect.appendChild(option);
+});
+
+function loadSong(index) {
+    audio.addEventListener("ended", nextSong);
+    audio.src = songs[index].file;
+    title.innerText = songs[index].name;
+    songSelect.value = index;
+}
+
+function nextSong() {
+    currentSong = (currentSong + 1) % songs.length;
+    loadSong(currentSong, true);
+}
+
+function prevSong() {
+    currentSong = (currentSong - 1 + songs.length) % songs.length;
+    loadSong(currentSong, true);
+}
+
+songSelect.addEventListener("change", () => {
+    currentSong = parseInt(songSelect.value);
+    loadSong(currentSong, true);
+});
+
+function loadSong(index, autoplay = false) {
+    audio.src = songs[index].file;
+    title.innerText = songs[index].name;
+    songSelect.value = index;
+
+    if (autoplay) {
+        audio.play().catch(() => {});
+    }
+}
+
+function playPause() {
+    if (audio.paused) {
+        audioContext.resume();
+        audio.play();
+    } else {
+        audio.pause();
+    }
+}
+
+function nextSong() {
+    currentSong = (currentSong + 1) % songs.length;
+    loadSong(currentSong);
+    audio.play();
+}
+
+function prevSong() {
+    currentSong = (currentSong - 1 + songs.length) % songs.length;
+    loadSong(currentSong);
+    audio.play();
+}
+
+songSelect.addEventListener("change", () => {
+    currentSong = parseInt(songSelect.value);
+    loadSong(currentSong);
+    audio.play();
+});
+
+audio.addEventListener("ended", nextSong);
+
+// Progress + Time
+audio.addEventListener("timeupdate", () => {
+    if (!isNaN(audio.duration)) {
+
+        progress.value = (audio.currentTime / audio.duration) * 100;
+
+        let currentMin = Math.floor(audio.currentTime / 60);
+        let currentSec = Math.floor(audio.currentTime % 60);
+        let durationMin = Math.floor(audio.duration / 60);
+        let durationSec = Math.floor(audio.duration % 60);
+
+        if (currentSec < 10) currentSec = "0" + currentSec;
+        if (durationSec < 10) durationSec = "0" + durationSec;
+
+        timeDisplay.textContent =
+            `${currentMin}:${currentSec} / ${durationMin}:${durationSec}`;
+    }
+});
+
+progress.addEventListener("input", () => {
+    audio.currentTime = (progress.value / 100) * audio.duration;
+});
+
+// Safe background brightness effect
+function animate() {
+    requestAnimationFrame(animate);
+
+    analyser.getByteFrequencyData(dataArray);
+
+    let sum = dataArray.reduce((a, b) => a + b, 0);
+    let average = sum / bufferLength;
+
+    document.body.style.filter = `brightness(${1 + average / 500})`;
+    document.body.style.transform = `scale(${1 + average / 1000})`;
+    document.body.style.background =
+        `url('image.png') center/cover no-repeat fixed`;
+}
+
+animate();
+loadSong(currentSong);
+</script>
+
+    </body>
+</html>
